@@ -1,11 +1,55 @@
-#version 410 core
+#version 330 core
 
-layout (location = 0) in vec3 vertexPosition;
-layout (location = 1) in vec3 vertexColor;
-layout (location = 0) out vec3 fragmentColor;
+// layout(std430, binding = 0) buffer TVertex
+// {
+//    vec4 vertex[]; 
+// };
+
+layout (std140) uniform BlockRect
+{
+    vec4 vertex[100];
+} u_Rect;
+
+
+uniform mat4  u_mvp;
+uniform vec2  u_resolution;
+uniform float u_thickness;
 
 void main()
 {
-    gl_Position = vec4(vertexPosition, 1.0);
-    fragmentColor = vertexColor;
+    int line_i = gl_VertexID / 6;
+    int tri_i  = gl_VertexID % 6;
+
+    vec4 va[4];
+    for (int i=0; i<4; ++i)
+    {
+        va[i] = u_mvp * u_Rect.vertex[line_i+i];
+        va[i].xyz /= va[i].w;
+        va[i].xy = (va[i].xy + 1.0) * 0.5 * u_resolution;
+    }
+
+    vec2 v_line  = normalize(va[2].xy - va[1].xy);
+    vec2 nv_line = vec2(-v_line.y, v_line.x);
+
+    vec4 pos;
+    if (tri_i == 0 || tri_i == 1 || tri_i == 3)
+    {
+        vec2 v_pred  = normalize(va[1].xy - va[0].xy);
+        vec2 v_miter = normalize(nv_line + vec2(-v_pred.y, v_pred.x));
+
+        pos = va[1];
+        pos.xy += v_miter * u_thickness * (tri_i == 1 ? -0.5 : 0.5) / dot(v_miter, nv_line);
+    }
+    else
+    {
+        vec2 v_succ  = normalize(va[3].xy - va[2].xy);
+        vec2 v_miter = normalize(nv_line + vec2(-v_succ.y, v_succ.x));
+
+        pos = va[2];
+        pos.xy += v_miter * u_thickness * (tri_i == 5 ? 0.5 : -0.5) / dot(v_miter, nv_line);
+    }
+
+    pos.xy = pos.xy / u_resolution * 2.0 - 1.0;
+    pos.xyz *= pos.w;
+    gl_Position = pos;
 }

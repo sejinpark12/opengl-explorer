@@ -8,15 +8,29 @@
 // #include <GL/glut.h>
 #endif
 
+#include <vector>
+#include <string>
+#include "./glm/glm/glm.hpp"
+#include "./glm/glm/gtc/matrix_transform.hpp"
+#include "./glm/glm/gtc/type_ptr.hpp"
 #include "logs.h"
 #include "shader_utils.h"
 #include "maths_utils.h"
 #include <iostream>
 #include <fstream>
 
-const size_t WIDTH = 640;
-const size_t HEIGHT = 480;
-const char *WINDOW_NAME = "OpenGL Explorer";
+// GLuint CreateSSBO(std::vector<glm::vec4> &varray)
+// {
+//     GLuint ssbo;
+//     glGenBuffers(1, &ssbo);
+//     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo );
+//     glBufferData(GL_SHADER_STORAGE_BUFFER, varray.size()*sizeof(*varray.data()), varray.data(), GL_STATIC_DRAW); 
+//     return ssbo;
+// }
+
+const size_t WIDTH = 1080;
+const size_t HEIGHT = 1920;
+const char *WINDOW_NAME = "OpenGL";
 auto shader_utils = ShaderUtils::Program{};
 
 /*
@@ -160,60 +174,218 @@ int main(void)
     }
     /* END OF SHADER PART */
 
-    /* DRAW THE TRIANGLE */
-    const MathsUtils::vertex vertices[3] = {
-        {0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f},
-        {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f},
-        {-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f}};
+    GLuint program = shader_utils.getProgram().value();
 
-    // Vertex Buffer Object = VBO
-    GLuint VBO = {};
-    glGenBuffers(1, &VBO);
+    GLint  loc_mvp  = glGetUniformLocation(program, "u_mvp");
+    GLint  loc_res  = glGetUniformLocation(program, "u_resolution");
+    GLint  loc_thi  = glGetUniformLocation(program, "u_thickness");
 
-    // Something failed when generating buffers
-    if (glGetError() != GL_NO_ERROR)
+    glUseProgram(program);
+
+    glUniform1f(loc_thi, 20.0);
+
+    // GLushort pattern = 0x18ff;
+    // GLfloat  factor  = 2.0f;
+
+    glm::vec4 p00(-1.0f, -0.5f, 0.0f, 1.0f);
+    glm::vec4 p01(-0.5f,  0.5f, 0.0f, 1.0f);
+    glm::vec4 p02( 0.0f, -0.5f, 0.0f, 1.0f);
+    glm::vec4 p03( 0.5f,  0.5f, 0.0f, 1.0f);
+    glm::vec4 p04( 1.0f, -0.5f, 0.0f, 1.0f);
+    glm::vec4 p05( 1.5f,  0.5f, 0.0f, 1.0f);
+    glm::vec4 p06( 2.0f, -0.5f, 0.0f, 1.0f);
+    glm::vec4 p07( 2.5f,  0.5f, 0.0f, 1.0f);
+
+    std::vector<glm::vec4> varray0{p00, p01, p02, p03, p04, p05, p06, p07};
+
+    glm::vec4 p0(-1.0f, -1.0f, 0.0f, 1.0f);
+    glm::vec4 p1(1.0f, -1.0f, 0.0f, 1.0f);
+    glm::vec4 p2(1.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec4 p3(-1.0f, 1.0f, 0.0f, 1.0f);
+    std::vector<glm::vec4> varray1{ p3, p0, p1, p2, p3, p0, p1 };
+    // GLuint ssbo1 = CreateSSBO(varray1);
+    // std::cout << "varray1" << std::endl;
+    // for (auto &el : varray1) {
+    //     std::cout << el[0] << ", " << el[1] << ", " << el[2] << ", " << el[3] << std::endl;
+    // }
+
+    std::vector<glm::vec4> varray2;
+    for (int u=-8; u <= 368; u += 8)
     {
-        error("error when generating buffers");
-        glDeleteBuffers(1, &VBO); // TODO: Needed?
-        glfwTerminate();
-        return -1;
+        double a = u*M_PI/180.0;
+        double c = cos(a), s = sin(a);
+        varray2.emplace_back(glm::vec4((float)c, (float)s, 0.0f, 1.0f));
+        std::cout << "u = " << u << ", a = " << a << " (" << c << ", " << s << ")" << std::endl;
     }
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, MathsUtils::getNbElements(vertices) * sizeof(float), vertices, GL_STATIC_DRAW | GL_MAP_READ_BIT);
 
-    // Vertex Arrays Object = VAO
-    GLuint VAO = {};
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    //std::cout << "varray2" << std::endl;
+    //for (auto &el : varray2) {
+    //    std::cout << el[0] << ", " << el[1] << ", " << el[2] << ", " << el[3] << std::endl;
+    //}
 
-    // Specify position attribute -> 0 as offset
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, MathsUtils::VERTEX_ELEMENTS_NB * sizeof(float), (GLvoid *)0);
-    glEnableVertexAttribArray(0);
+    // GLuint ssbo2 = CreateSSBO(varray2);
 
-    // Specify color attribute -> 3 as offset
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, MathsUtils::VERTEX_ELEMENTS_NB * sizeof(float), (GLvoid *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    GLuint ubo0 = 0;
+    glGenBuffers(1, &ubo0);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo0);
+    glBufferData(GL_UNIFORM_BUFFER, varray0.size() * sizeof(*varray0.data()), varray0.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    /* END OF DRAWING */
+    unsigned int block = glGetUniformBlockIndex(program, "BlockRect");
+    GLuint bind0 = 0;
+    glUniformBlockBinding(program, block, bind0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo0, 0, sizeof(varray0));
+
+    GLuint ubo1 = 0;
+    glGenBuffers(1, &ubo1);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo1);
+    glBufferData(GL_UNIFORM_BUFFER, varray1.size() * sizeof(*varray1.data()), varray1.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    GLuint bind = 1;
+    glUniformBlockBinding(program, block, bind);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 1, ubo1, 0, sizeof(varray1));
+
+    GLuint ubo2 = 0;
+    glGenBuffers(1, &ubo2);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo2);
+    glBufferData(GL_UNIFORM_BUFFER, varray2.size() * sizeof(*varray2.data()), varray2.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    GLuint bind2 = 2;
+    glUniformBlockBinding(program, block, bind2);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 2, ubo2, 0, sizeof(varray2));
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    glm::mat4(project);
+    int vpSize[2]{0, 0};
 
     while (!glfwWindowShouldClose(window))
     {
-        // Render
-        glClearColor(0.5, 0.5, 0.5, 1.0);
+        int w, h;
+        glfwGetFramebufferSize(window, &w, &h);
+        if (w != vpSize[0] ||  h != vpSize[1])
+        {
+            vpSize[0] = w; vpSize[1] = h;
+            glViewport(0, 0, vpSize[0], vpSize[1]);
+            float aspect = (float)w/(float)h;
+            project = glm::ortho(-aspect, aspect, -1.0f, 1.0f, -10.0f, 10.0f);
+            glUniform2f(loc_res, (float)w, (float)h);
+        }
+
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shader_utils.getProgram().value());
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        // Poll for and process events
-        glfwPollEvents();
-        // Swap front and back buffers
+
+        // line1 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glm::mat4 modelview1( 1.0f );
+        modelview1 = glm::translate(modelview1, glm::vec3(-1.0f, 0.6f, 0.0f) );
+        modelview1 = glm::scale(modelview1, glm::vec3(0.2f, 0.2f, 1.0f) );
+        glm::mat4 mvp1 = project * modelview1;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo0);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, varray0.size() * sizeof(*varray0.data()), varray0.data());
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, block, bind0);
+
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, glm::value_ptr(mvp1));
+        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo1);
+        GLsizei N1 = (GLsizei)varray0.size()-2;
+        glDrawArrays(GL_TRIANGLES, 0, 6*(N1-1));
+
+        // line2
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        modelview1 = glm::mat4( 1.0f );
+        modelview1 = glm::translate(modelview1, glm::vec3(-1.0f, -0.6f, 0.0f) );
+        modelview1 = glm::scale(modelview1, glm::vec3(0.2f, 0.2f, 1.0f) );
+        mvp1 = project * modelview1;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo0);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, varray0.size() * sizeof(*varray0.data()), varray0.data());
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, block, bind0);
+
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, glm::value_ptr(mvp1));
+        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo1);
+        N1 = (GLsizei)varray0.size()-2;
+        glDrawArrays(GL_TRIANGLES, 0, 6*(N1-1));
+
+        // rectangle1
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        modelview1 = glm::mat4( 1.0f );
+        modelview1 = glm::translate(modelview1, glm::vec3(0.0f, 0.6f, 0.0f) );
+        modelview1 = glm::scale(modelview1, glm::vec3(0.3f, 0.3f, 1.0f) );
+        mvp1 = project * modelview1;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo1);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, varray1.size() * sizeof(*varray1.data()), varray1.data());
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, block, bind);
+
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, glm::value_ptr(mvp1));
+        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo1);
+        N1 = (GLsizei)varray1.size()-2;
+        glDrawArrays(GL_TRIANGLES, 0, 6*(N1-1));
+
+        // rectangle2
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        modelview1 = glm::mat4( 1.0f );
+        modelview1 = glm::translate(modelview1, glm::vec3(0.0f, -0.6f, 0.0f) );
+        modelview1 = glm::scale(modelview1, glm::vec3(0.3f, 0.3f, 1.0f) );
+        mvp1 = project * modelview1;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo1);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, varray1.size() * sizeof(*varray1.data()), varray1.data());
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, block, bind);
+
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, glm::value_ptr(mvp1));
+        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo1);
+        N1 = (GLsizei)varray1.size()-2;
+        glDrawArrays(GL_TRIANGLES, 0, 6*(N1-1));
+
+        // circle1
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glm::mat4 modelview2( 1.0f );
+        modelview2 = glm::translate(modelview2, glm::vec3(1.0f, 0.6f, 0.0f) );
+        modelview2 = glm::scale(modelview2, glm::vec3(0.3f, 0.3f, 1.0f) );
+        glm::mat4 mvp2 = project * modelview2;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo2);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, varray2.size() * sizeof(*varray2.data()), varray2.data());
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, block, bind2);
+        
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, glm::value_ptr(mvp2));
+        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo2);
+        GLsizei N2 = (GLsizei)varray2.size()-2;
+        glDrawArrays(GL_TRIANGLES, 0, 6*(N2-1));
+
+        // circle2
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        modelview2 = glm::mat4( 1.0f );
+        modelview2 = glm::translate(modelview2, glm::vec3(1.0f, -0.6f, 0.0f) );
+        modelview2 = glm::scale(modelview2, glm::vec3(0.3f, 0.3f, 1.0f) );
+        mvp2 = project * modelview2;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo2);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, varray2.size() * sizeof(*varray2.data()), varray2.data());
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniformBlockBinding(program, block, bind2);
+        
+        glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, glm::value_ptr(mvp2));
+        // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo2);
+        N2 = (GLsizei)varray2.size()-2;
+        glDrawArrays(GL_TRIANGLES, 0, 6*(N2-1));
         glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 
-    // ... here, the user closed the window
-    glDeleteBuffers(1, &VBO);
-    glDeleteVertexArrays(1, &VAO);
     glfwTerminate();
     return 0;
 }
