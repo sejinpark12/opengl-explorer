@@ -1,6 +1,17 @@
 #ifndef _MATHS_UTILS_H
 #define _MATHS_UTILS_H
 
+#include <vector>
+#ifdef __APPLE__
+/* Defined before OpenGL and GLUT includes to avoid deprecation messages */
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
+#include <GLFW/glfw3.h>
+#else
+ #include <GL/gl.h>
+#include <GL/glut.h>
+#endif
+
 namespace MathsUtils
 {
 
@@ -76,6 +87,13 @@ namespace MathsUtils
      */
     const unsigned int getNbElements(const vertex vertices[]);
 
+    std::vector<float> duplicate(std::vector<std::vector<float>> array, bool mirror);
+
+    std::vector<uint16_t> createIndices(int length);
+
+    std::vector<std::vector<float>> relative(std::vector<std::vector<float>> array, int offset);
+
+    int clamp(int value, int begin, int end);
 }
 
 #endif

@@ -9,3 +9,4 @@ myapp
 opengl-explorer
 #editor settings
 .vscode
+.DS_Store

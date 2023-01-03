@@ -4,8 +4,8 @@
 #include <GLFW/glfw3.h>
 #endif
 
-#include "logs.h"
-#include "shader_utils.h"
+#include "Base/logs.h"
+#include "Base/shader_utils.h"
 #include <optional>
 #include <iostream>
 

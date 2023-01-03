@@ -10,12 +10,13 @@
 
 #include <vector>
 #include <string>
-#include "./glm/glm/glm.hpp"
-#include "./glm/glm/gtc/matrix_transform.hpp"
-#include "./glm/glm/gtc/type_ptr.hpp"
-#include "logs.h"
-#include "shader_utils.h"
-#include "maths_utils.h"
+#include "../../glm/glm/glm.hpp"
+#include "../../glm/glm/gtc/matrix_transform.hpp"
+#include "../../glm/glm/gtc/type_ptr.hpp"
+#include "../../glm/glm/gtx/string_cast.hpp"
+#include <Base/logs.h>
+#include <Base/shader_utils.h>
+#include <Base/maths_utils.h>
 #include <iostream>
 #include <fstream>
 
@@ -120,8 +121,8 @@ inline auto readFile(const std::string_view path) -> const std::string
 
 const bool loadShaderProgram(const bool erase_if_program_registered = true)
 {
-    const std::string basicVertexShaderSource = readFile("shaders/vertex_shader.glsl");
-    const std::string basicFragmentShaderSource = readFile("shaders/fragment_shader.glsl");
+    const std::string basicVertexShaderSource = readFile("/Users/parksejin/Documents/opengl-explorer/uniformblock/shaders/vertex_shader.glsl");
+    const std::string basicFragmentShaderSource = readFile("/Users/parksejin/Documents/opengl-explorer/uniformblock/shaders/fragment_shader.glsl");
 
     if (!shader_utils.registerShader(ShaderUtils::Type::VERTEX_SHADER_TYPE, basicVertexShaderSource.c_str()))
     {
